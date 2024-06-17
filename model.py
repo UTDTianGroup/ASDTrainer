@@ -28,53 +28,17 @@ class model(nn.Module):
         self.loss_fn = nn.CrossEntropyLoss()
         
     def createVisualModel(self):
-        self.visualModel = nn.Sequential(
-                            nn.Conv2d(1, 64, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(64),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(64, 128, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(128),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(128, 128, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(128),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(128, 128, 3, padding=1),
-                            nn.Flatten()
-                           )
+        pass
 
     def createAudioModel(self):
-        self.audioModel = nn.Sequential(
-                            nn.Conv2d(1, 64, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(64),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(64, 128, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(128),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(128, 128, 3, padding=1),
-                            nn.ReLU(),
-                            nn.BatchNorm2d(128),
-                            nn.MaxPool2d(2),
-                            nn.Conv2d(128, 128, 3, padding=1),
-                            nn.Flatten()
-                           )
+        pass
 
 
     def createFusionModel(self):
         pass
 
     def createFCModel(self):
-        self.fcModel = nn.Sequential(
-                           nn.Linear(29824, 1024),
-                           nn.ReLU(),
-                           nn.Linear(1024, 128),
-                           nn.ReLU(),
-                           nn.Linear(128,2)
-                       )
+        pass
     
     def train_network(self, loader, epoch, **kwargs):
         
