@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import time, tqdm
 
 class model(nn.Module):
-    def __init__(self, lr=0.0001, lrDecay=0.95, **kwargs):
+    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
         super(model, self).__init__()
 
         self.visualModel = None
@@ -13,7 +13,7 @@ class model(nn.Module):
         self.fusionModel = None
         self.fcModel = None
 
-        self.device='cpu'
+        self.device = ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.createVisualModel()
         self.createAudioModel()
@@ -51,27 +51,30 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
-                print('audioFeatures shape: ', audioFeatures.shape)
-                print('visualFeatures shape: ', visualFeatures.shape)
-                print('labels shape: ', labels.shape)
+                # print('audioFeatures shape: ', audioFeatures.shape)
+                # print('visualFeatures shape: ', visualFeatures.shape)
+                # print('labels shape: ', labels.shape)
                 
+                # print('audio feature: ', audioFeatures)
+                # print('visual features: ', visualFeatures)
+
                 audioFeatures = torch.unsqueeze(audioFeatures, dim=1)  
-                print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
+                # print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
                 
                 audioFeatures = audioFeatures.to(self.device)
                 visualFeatures = visualFeatures.to(self.device)
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                print('audio embed shape: ', audioEmbed.shape)
+                # print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
-                print('visual embed shape: ', visualEmbed.shape)
+                # print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
-                print('avfusion shape: ', avfusion.shape)
+                # print('avfusion shape: ', avfusion.shape)
                 
                 fcOutput = self.fcModel(avfusion)
-                print('fc output shape: ', fcOutput.shape)
+                # print('fc output shape: ', fcOutput.shape)
                 
                 nloss = self.loss_fn(fcOutput, labels)
                 
