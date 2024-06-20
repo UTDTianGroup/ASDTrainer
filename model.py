@@ -13,14 +13,16 @@ class model(nn.Module):
         self.fusionModel = None
         self.fcModel = None
 
+        self.device='cpu'
+
         self.createVisualModel()
         self.createAudioModel()
         self.createFusionModel()
         self.createFCModel()
         
-        self.visualModel = self.visualModel.cuda()
-        self.audioModel = self.audioModel.cuda()
-        self.fcModel = self.fcModel.cuda()
+        self.visualModel = self.visualModel.to(self.device)
+        self.audioModel = self.audioModel.to(self.device)
+        self.fcModel = self.fcModel.to(self.device)
         
         self.optim = torch.optim.Adam(self.parameters(), lr = lr)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, step_size = 1, gamma=lrDecay)
@@ -28,17 +30,17 @@ class model(nn.Module):
         self.loss_fn = nn.CrossEntropyLoss()
         
     def createVisualModel(self):
-        pass
+        self.visualModel = nn.Sequential(nn.Flatten(), nn.Linear(112*112, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
 
     def createAudioModel(self):
-        pass
+        self.audioModel = nn.Sequential(nn.Flatten(), nn.Linear(299*13, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
 
 
     def createFusionModel(self):
         pass
 
     def createFCModel(self):
-        pass
+        self.fcModel = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Linear(128,64), nn.ReLU(), nn.Linear(64, 2))
     
     def train_network(self, loader, epoch, **kwargs):
         
@@ -48,19 +50,28 @@ class model(nn.Module):
         index, top1, loss = 0, 0, 0
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
+
+                print('audioFeatures shape: ', audioFeatures.shape)
+                print('visualFeatures shape: ', visualFeatures.shape)
+                print('labels shape: ', labels.shape)
                 
-                audioFeatures = torch.unsqueeze(audioFeatures, dim=1)              
+                audioFeatures = torch.unsqueeze(audioFeatures, dim=1)  
+                print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
                 
-                audioFeatures = audioFeatures.cuda()
-                visualFeatures = visualFeatures.cuda()
-                labels = labels.squeeze().cuda()
+                audioFeatures = audioFeatures.to(self.device)
+                visualFeatures = visualFeatures.to(self.device)
+                labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
+                print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
+                print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
+                print('avfusion shape: ', avfusion.shape)
                 
                 fcOutput = self.fcModel(avfusion)
+                print('fc output shape: ', fcOutput.shape)
                 
                 nloss = self.loss_fn(fcOutput, labels)
                 
@@ -89,9 +100,9 @@ class model(nn.Module):
         for audioFeatures, visualFeatures, labels in tqdm.tqdm(loader):
             
             audioFeatures = torch.unsqueeze(audioFeatures, dim=1)
-            audioFeatures = audioFeatures.cuda()
-            visualFeatures = visualFeatures.cuda()
-            labels = labels.squeeze().cuda()
+            audioFeatures = audioFeatures.to(self.device)
+            visualFeatures = visualFeatures.to(self.device)
+            labels = labels.squeeze().to(self.device)
             
             with torch.no_grad():
                 

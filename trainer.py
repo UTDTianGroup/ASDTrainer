@@ -37,7 +37,7 @@ def main(args):
                         audioPath     = os.path.join(args.datasetPath , 'clips_audios'), \
                         visualPath    = os.path.join(args.datasetPath, 'clips_videos', args.evalDataType), \
                         **vars(args))
-    valLoader = torch.utils.data.DataLoader(loader, batch_size = args.batchSize, shuffle = False, num_workers = 16)
+    valLoader = torch.utils.data.DataLoader(loader, batch_size = args.batchSize, shuffle = False, num_workers = 4)
     
     if args.evaluation == True:
         s = model(**vars(args))
@@ -52,6 +52,7 @@ def main(args):
         print("mAP %2.2f%%"%(mAP))
         quit()    
     
+    # Either loads a previous checkpoint or starts training from scratch
     args.modelSavePath = os.path.join(args.savePath, 'model')
     os.makedirs(args.modelSavePath, exist_ok=True)
     args.scoreSavePath    = os.path.join(args.savePath, 'score.txt')
