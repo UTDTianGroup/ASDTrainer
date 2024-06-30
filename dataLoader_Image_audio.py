@@ -112,6 +112,8 @@ def load_visual(data, dataPath, numImages, visualAug):
         elif augType == 'rotate':
             faces.append(cv2.warpAffine(face, M, (H,H)))
     faces = numpy.array(faces)
+    faces = faces.astype(np.float64)
+    faces = (faces - 128)/128
     faces = np.pad(faces, ((shortage, excess), (0,0), (0,0)))
     return faces
 
