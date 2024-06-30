@@ -76,10 +76,10 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
-                print('audioFeatures: ', audioFeatures)
-                print('visualFeatures: ', visualFeatures)
-                print('visual feature max: ', torch.max(visualFeatures))
-                print('visual feature min: ', torch.min(visualFeatures))
+                # print('audioFeatures: ', audioFeatures)
+                # print('visualFeatures: ', visualFeatures)
+                # print('visual feature max: ', torch.max(visualFeatures))
+                # print('visual feature min: ', torch.min(visualFeatures))
                 # print('labels shape: ', labels.shape)
                 
                 # print('audio feature: ', audioFeatures)
