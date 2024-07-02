@@ -120,11 +120,11 @@ class model(nn.Module):
                 audioEmbed = self.audioModel(audioFeatures)
                 audioEmbed = self.audio_avg_pool(audioEmbed)
                 audioEmbed = self.audio_flatten(audioEmbed)
-                print('audio embed shape: ', audioEmbed.shape)
+                
                 visualEmbed = self.visualModel(visualFeatures)
                 visualEmbed = self.visual_avg_pool(visualEmbed)
                 visualEmbed = self.visual_flatten(visualEmbed)
-                print('visual embed shape: ', visualEmbed.shape)
+                
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)
@@ -158,7 +158,10 @@ class model(nn.Module):
         
         for audioFeatures, visualFeatures, labels in tqdm.tqdm(loader):
             
-            audioFeatures = torch.unsqueeze(audioFeatures, dim=1)
+            # audioFeatures = torch.unsqueeze(audioFeatures, dim=1)
+
+            audioFeatures = audioFeatures.squeeze(1)
+            visualFeatures = visualFeatures.squeeze(1)
             audioFeatures = audioFeatures.to(self.device)
             visualFeatures = visualFeatures.to(self.device)
             labels = labels.squeeze().to(self.device)
@@ -166,7 +169,11 @@ class model(nn.Module):
             with torch.no_grad():
                 
                 audioEmbed = self.audioModel(audioFeatures)
+                audioEmbed = self.audio_avg_pool(audioEmbed)
+                audioEmbed = self.audio_flatten(audioEmbed)
                 visualEmbed = self.visualModel(visualFeatures)
+                visualEmbed = self.visual_avg_pool(visualEmbed)
+                visualEmbed = self.visual_flatten(visualEmbed)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 
