@@ -55,17 +55,17 @@ class model(nn.Module):
         self.loss_fn = nn.CrossEntropyLoss()
         
     def createVisualModel(self):
-        self.visualModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2), ConvBlock(32,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,128,3, last_block=True), nn.Flatten())
+        self.visualModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2), ConvBlock(32,64,3), nn.MaxPool2d(2), ConvBlock(64,128,3), nn.MaxPool2d(2), ConvBlock(128,256,3, last_block=True), nn.AvgPool2d((14,14)), nn.Flatten())
 
     def createAudioModel(self):
-        self.audioModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2, (2,1)), ConvBlock(32,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3, last_block=True), nn.Flatten())
+        self.audioModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2, (2,1)), ConvBlock(32,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,128,3), nn.MaxPool2d(2), ConvBlock(128,256,3, last_block=True), nn.AvgPool2d((18,5)), nn.Flatten())
 
 
     def createFusionModel(self):
         pass
 
     def createFCModel(self):
-        self.fcModel = nn.Sequential(nn.Linear(30848, 512), nn.ReLU(), nn.Dropout(0.3), nn.Linear(512,128), nn.ReLU(), nn.Dropout(0.3), nn.Linear(128, 2))
+        self.fcModel = nn.Sequential(nn.Linear(512, 256), nn.ReLU(), nn.Dropout(0.3), nn.Linear(256,64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, 2))
     
     def train_network(self, loader, epoch, **kwargs):
         
@@ -76,8 +76,8 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
-                # print('audioFeatures: ', audioFeatures)
-                # print('visualFeatures: ', visualFeatures)
+                print('audioFeatures shape: ', audioFeatures.shape)
+                print('visualFeatures shape: ', visualFeatures.shape)
                 # print('visual feature max: ', torch.max(visualFeatures))
                 # print('visual feature min: ', torch.min(visualFeatures))
                 # print('labels shape: ', labels.shape)
@@ -93,9 +93,9 @@ class model(nn.Module):
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                # print('audio embed shape: ', audioEmbed.shape)
+                print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
-                # print('visual embed shape: ', visualEmbed.shape)
+                print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)
