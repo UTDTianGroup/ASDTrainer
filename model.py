@@ -69,15 +69,15 @@ class model(nn.Module):
     def createVisualModel(self):
         # self.visualModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2), ConvBlock(32,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,128,3, last_block=True), nn.Flatten())
         vgg_model = torchvision.models.vgg16(pretrained=True)
-        for param in vgg_model.parameters():
-            param.requires_grad=False
+        # for param in vgg_model.parameters():
+        #     param.requires_grad=False
         self.visualModel = vgg_model.features
 
     def createAudioModel(self):
         # self.audioModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2, (2,1)), ConvBlock(32,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3, last_block=True), nn.Flatten())
         vggish_model = VGGISH.get_model()
-        for param in vggish_model.parameters():
-            param.requires_grad=False
+        # for param in vggish_model.parameters():
+        #     param.requires_grad=False
         self.audioModel = vggish_model.features_network
         
 
@@ -194,9 +194,9 @@ class model(nn.Module):
     def saveParameters(self, path):
         torch.save(self.state_dict(), path)
         
-    def loadParameters(self, path):
+    def loadParameters(self, path, map_location):
         selfState = self.state_dict()
-        loadedState = torch.load(path)
+        loadedState = torch.load(path, map_location=map_location)
         for name, param in loadedState.items():
             origName = name
             if name not in selfState:

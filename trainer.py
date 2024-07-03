@@ -20,6 +20,7 @@ def parser():
     args.add_argument('--evalDataType', type=str, default="val", help='The dataset for evaluation, val or test')
     args.add_argument('--evaluation', dest='evaluation', action='store_true', help='Only do evaluation')
     args.add_argument('--eval_model_path', type=str, default="path not specified", help="model path for evaluation")
+    args.add_argument('--pretrained_model_path', type=str, default="path not specified", help="Path to the pretrained parameters. These parameters are used to initialize training.")
 
     args = args.parse_args()
 
@@ -56,16 +57,12 @@ def main(args):
     args.modelSavePath = os.path.join(args.savePath, 'model')
     os.makedirs(args.modelSavePath, exist_ok=True)
     args.scoreSavePath    = os.path.join(args.savePath, 'score.txt')
-    modelfiles = glob.glob('%s/model_0*.model'%args.modelSavePath)
-    modelfiles.sort()  
-    if len(modelfiles) >= 1:
-        print("Model %s loaded from previous state!"%modelfiles[-1])
-        epoch = int(os.path.splitext(os.path.basename(modelfiles[-1]))[0][6:]) + 1
-        s = model(epoch = epoch, **vars(args))
-        s.loadParameters(modelfiles[-1])
-    else:
-        epoch = 1
-        s = model(epoch = epoch, **vars(args))
+    # modelfiles = glob.glob('%s/model_0*.model'%args.modelSavePath)
+    # modelfiles.sort()  
+    
+    epoch = 1
+    s = model(epoch = epoch, **vars(args))
+    s.loadParameters(args.pretrained_model_path, map_location=s.device)
 
     mAPs = []
     scoreFile = open(args.scoreSavePath, "a+")
