@@ -76,8 +76,8 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
-                print('audioFeatures shape: ', audioFeatures.shape)
-                print('visualFeatures shape: ', visualFeatures.shape)
+                # print('audioFeatures shape: ', audioFeatures.shape)
+                # print('visualFeatures shape: ', visualFeatures.shape)
                 # print('visual feature max: ', torch.max(visualFeatures))
                 # print('visual feature min: ', torch.min(visualFeatures))
                 # print('labels shape: ', labels.shape)
@@ -93,9 +93,9 @@ class model(nn.Module):
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                print('audio embed shape: ', audioEmbed.shape)
+                # print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
-                print('visual embed shape: ', visualEmbed.shape)
+                # print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)
