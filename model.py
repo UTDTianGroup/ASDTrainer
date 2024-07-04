@@ -31,7 +31,7 @@ class ConvBlock(nn.Module):
             return x
 
 class model(nn.Module):
-    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
+    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', num_blocks_unfrozen=0, **kwargs):
         super(model, self).__init__()
 
         self.visualModel = None
@@ -40,6 +40,11 @@ class model(nn.Module):
         self.fcModel = None
 
         self.device = ("cuda" if torch.cuda.is_available() else "cpu")
+
+        self.visual_block_layer_dict = {0:31, 1:24, 2:17, 3:10, 4:5, 5:0}
+        self.audio_block_layer_dict = {0:16, 1:11, 2:6, 3:3, 4:0}
+
+        self.num_blocks_unfrozen = num_blocks_unfrozen
 
         self.createVisualModel()
         self.createAudioModel()
@@ -61,6 +66,8 @@ class model(nn.Module):
         self.audio_flatten = nn.Flatten()
         self.visual_flatten = nn.Flatten()
 
+        
+
         # self.train_image_transform = torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(), torchvision.transforms.RandomRotation(degrees=30), torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
         # self.val_image_transform = torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
@@ -72,6 +79,13 @@ class model(nn.Module):
         # for param in vgg_model.parameters():
         #     param.requires_grad=False
         self.visualModel = vgg_model.features
+        print('visual feature extractor: ', self.visualModel)
+        for name, param in self.visualModel.named_parameters():
+            # print('visual model parameter: ', name)
+            name_ind=int(name.split('.')[0])
+            if name_ind < self.visual_block_layer_dict[self.num_blocks_unfrozen]:
+                print('Freezing visual weights of layer: ', name_ind)
+                param.requires_grad=False
 
     def createAudioModel(self):
         # self.audioModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2, (2,1)), ConvBlock(32,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3, last_block=True), nn.Flatten())
@@ -79,6 +93,13 @@ class model(nn.Module):
         # for param in vggish_model.parameters():
         #     param.requires_grad=False
         self.audioModel = vggish_model.features_network
+        print('audio feature extractor: ', self.audioModel)
+        for name, param in self.audioModel.named_parameters():
+            # print('audio model parameter: ', name)
+            name_ind=int(name.split('.')[0])
+            if name_ind < self.audio_block_layer_dict[self.num_blocks_unfrozen]:
+                print('Freezing audio weights of layer: ', name_ind)
+                param.requires_grad=False
         
 
     def createFusionModel(self):

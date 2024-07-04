@@ -21,6 +21,7 @@ def parser():
     args.add_argument('--evaluation', dest='evaluation', action='store_true', help='Only do evaluation')
     args.add_argument('--eval_model_path', type=str, default="path not specified", help="model path for evaluation")
     args.add_argument('--pretrained_model_path', type=str, default="path not specified", help="Path to the pretrained parameters. These parameters are used to initialize training.")
+    args.add_argument('--num_blocks_unfrozen', type=int, default=0, help='The number of convolution blocks unfrozen in the feature extractors for finetuning. Max value is 4 since the number of Conv Blocks in VGGish is 4.')
 
     args = args.parse_args()
 
@@ -63,6 +64,9 @@ def main(args):
     epoch = 1
     s = model(epoch = epoch, **vars(args))
     s.loadParameters(args.pretrained_model_path, map_location=s.device)
+
+    for name, param in s.named_parameters():
+        print('Final model {}: {}'.format(name, param.requires_grad))
 
     mAPs = []
     scoreFile = open(args.scoreSavePath, "a+")
