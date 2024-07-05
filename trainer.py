@@ -72,7 +72,7 @@ def main(args):
     scoreFile = open(args.scoreSavePath, "a+")
     bestmAP = 0
     while(1):        
-        loss, lr = s.train_network(epoch = epoch, loader = trainLoader, **vars(args))
+        loss, lr, train_acc = s.train_network(epoch = epoch, loader = trainLoader, **vars(args))
         
         if epoch % args.testInterval == 0:        
             
@@ -81,7 +81,7 @@ def main(args):
                 bestmAP = mAPs[-1]
                 s.saveParameters(args.modelSavePath + "/best.model")
             print(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, mAP %2.2f%%, bestmAP %2.2f%%"%(epoch, mAPs[-1], max(mAPs)))
-            scoreFile.write("%d epoch, LR %f, LOSS %f, mAP %2.2f%%, bestmAP %2.2f%%\n"%(epoch, lr, loss, mAPs[-1], max(mAPs)))
+            scoreFile.write("%d epoch, LR %f, LOSS %f, mAP %2.2f%%, bestmAP %2.2f%%, trainAcc %2.2f\n"%(epoch, lr, loss, mAPs[-1], max(mAPs), train_acc))
             scoreFile.flush()
 
         if epoch >= args.maxEpoch:

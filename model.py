@@ -169,7 +169,7 @@ class model(nn.Module):
                 sys.stderr.flush()  
         sys.stdout.write("\n")
         
-        return loss/num, lr
+        return loss/num, lr, top1/index
         
     def evaluate_network(self, loader, **kwargs):
         self.eval()
