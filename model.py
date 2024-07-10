@@ -1,4 +1,4 @@
-import sys
+import sys, csv, pandas
 import torch, torchvision
 import torch.nn as nn
 import torch.nn.functional as F
@@ -150,15 +150,14 @@ class model(nn.Module):
         
         return loss/num, lr
         
-    def evaluate_network(self, loader, **kwargs):
+    def evaluate_network(self, loader, evalOrig, evalCsvSave, **kwargs):
         self.eval()
         predScores = []
         predLabels = []
-        csv_save_path = 'labels_csv_fc.csv'
+
         loss, top1, index, numBatches = 0, 0, 0, 0
 
-        fh = open(csv_save_path, 'w')
-        csvwriter = csv.writer(fh)
+        
         
         for audioFeatures, visualFeatures, labels in tqdm.tqdm(loader):
             
@@ -182,9 +181,9 @@ class model(nn.Module):
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 
                 fcOutput = self.fcModel(avfusion)
-                predLabel = fcOutput.argmax(1)
-                predLabel = predLabel.detach().cpu().numpy()
-                
+                predOutput = fcOutput.detach().cpu().numpy()
+                predLabel = predOutput.argmax(1)
+                predLabels.extend(predLabel)
                 nloss = self.loss_fn(fcOutput, labels)
                 
                 loss += nloss.detach().cpu().numpy()
@@ -197,11 +196,12 @@ class model(nn.Module):
         evalLines = open(evalOrig).read().splitlines()[1:]
         labels = []
         labels = pandas.Series( ['SPEAKING_AUDIBLE' if predLabel==1 else 'NOT_SPEAKING' for predLabel in predLabels])
+        predScores = predLabels
         scores = pandas.Series(predScores)
         evalRes = pandas.read_csv(evalOrig)
         evalRes['score'] = scores
         evalRes['label'] = labels
-        evalRes['label_id'] = predLabels
+        evalRes['label_id'] = pandas.Series(predLabels)
         # evalRes.drop(['label_id'], axis=1,inplace=True)
         # evalRes.drop(['instance_id'], axis=1,inplace=True)
         evalRes.to_csv(evalCsvSave, index=False)
