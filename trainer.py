@@ -1,6 +1,6 @@
 import os, glob, time
 import argparse
-from model import *
+from model_bkp import *
 from dataLoader_Image_audio import train_loader, val_loader
 
 def parser():

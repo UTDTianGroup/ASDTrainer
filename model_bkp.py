@@ -1,8 +1,34 @@
-import sys, pandas
-import torch
+import sys, csv, pandas
+import torch, torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import time, tqdm
+from torchaudio.prototype.pipelines import VGGISH
+
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, last_block=False, stride=(1,1), padding=(1,1)):
+        super(ConvBlock, self).__init__()
+        self.last_block = last_block
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.relu1 = nn.ReLU()
+        self.bn1 = nn.BatchNorm2d(num_features=out_channels)
+        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.relu2 = nn.ReLU()
+        self.bn2 = nn.BatchNorm2d(num_features=out_channels)
+        self.conv3 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        if not self.last_block:
+            self.relu3 = nn.ReLU()
+            self.bn3 = nn.BatchNorm2d(num_features=out_channels)
+
+    def forward(self, x):
+        x = self.bn1(self.relu1(self.conv1(x)))
+        x = self.bn2(self.relu2(self.conv2(x)))
+        x = self.conv3(x)
+        if self.last_block:
+            return x
+        else:
+            x = self.bn3(self.relu3(x))
+            return x
 
 class model(nn.Module):
     def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
@@ -28,19 +54,38 @@ class model(nn.Module):
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, step_size = 1, gamma=lrDecay)
         
         self.loss_fn = nn.CrossEntropyLoss()
+
+        self.audio_avg_pool = nn.MaxPool2d((6,4))
+        self.visual_avg_pool = nn.MaxPool2d((3,3))
+
+        self.audio_flatten = nn.Flatten()
+        self.visual_flatten = nn.Flatten()
+
+        # self.train_image_transform = torchvision.transforms.Compose([torchvision.transforms.RandomHorizontalFlip(), torchvision.transforms.RandomRotation(degrees=30), torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+        # self.val_image_transform = torchvision.transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+        # self.audio_inp_proc = VGGISH.get_input_processor()
         
     def createVisualModel(self):
-        self.visualModel = nn.Sequential(nn.Flatten(), nn.Linear(112*112, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
+        # self.visualModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2), ConvBlock(32,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,128,3, last_block=True), nn.Flatten())
+        vgg_model = torchvision.models.vgg16(pretrained=True)
+        for param in vgg_model.parameters():
+            param.requires_grad=False
+        self.visualModel = vgg_model.features
 
     def createAudioModel(self):
-        self.audioModel = nn.Sequential(nn.Flatten(), nn.Linear(299*13, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
-
+        # self.audioModel = nn.Sequential(ConvBlock(1,32,3), nn.MaxPool2d(2, (2,1)), ConvBlock(32,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2, (2,1)), ConvBlock(64,64,3), nn.MaxPool2d(2), ConvBlock(64,64,3, last_block=True), nn.Flatten())
+        vggish_model = VGGISH.get_model()
+        for param in vggish_model.parameters():
+            param.requires_grad=False
+        self.audioModel = vggish_model.features_network
+        
 
     def createFusionModel(self):
         pass
 
     def createFCModel(self):
-        self.fcModel = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Linear(128,64), nn.ReLU(), nn.Linear(64, 2))
+        self.fcModel = nn.Sequential(nn.Linear(1024, 256), nn.ReLU(), nn.Dropout(0.3), nn.Linear(256,64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, 2))
     
     def train_network(self, loader, epoch, **kwargs):
         
@@ -51,14 +96,21 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
+                audioFeatures = audioFeatures.squeeze(1)
+                visualFeatures = visualFeatures.squeeze(1)
+
+                # print('audioFeatures: ', audioFeatures)
+                # print('visualFeatures: ', visualFeatures)
                 # print('audioFeatures shape: ', audioFeatures.shape)
                 # print('visualFeatures shape: ', visualFeatures.shape)
+                # print('visual feature max: ', torch.max(visualFeatures))
+                # print('visual feature min: ', torch.min(visualFeatures))
                 # print('labels shape: ', labels.shape)
                 
                 # print('audio feature: ', audioFeatures)
                 # print('visual features: ', visualFeatures)
 
-                audioFeatures = torch.unsqueeze(audioFeatures, dim=1)  
+                # audioFeatures = torch.unsqueeze(audioFeatures, dim=1)  
                 # print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
                 
                 audioFeatures = audioFeatures.to(self.device)
@@ -66,9 +118,13 @@ class model(nn.Module):
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                # print('audio embed shape: ', audioEmbed.shape)
+                audioEmbed = self.audio_avg_pool(audioEmbed)
+                audioEmbed = self.audio_flatten(audioEmbed)
+                
                 visualEmbed = self.visualModel(visualFeatures)
-                # print('visual embed shape: ', visualEmbed.shape)
+                visualEmbed = self.visual_avg_pool(visualEmbed)
+                visualEmbed = self.visual_flatten(visualEmbed)
+                
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)
@@ -98,12 +154,17 @@ class model(nn.Module):
         self.eval()
         predScores = []
         predLabels = []
-        
+
         loss, top1, index, numBatches = 0, 0, 0, 0
+
+        
         
         for audioFeatures, visualFeatures, labels in tqdm.tqdm(loader):
             
-            audioFeatures = torch.unsqueeze(audioFeatures, dim=1)
+            # audioFeatures = torch.unsqueeze(audioFeatures, dim=1)
+
+            audioFeatures = audioFeatures.squeeze(1)
+            visualFeatures = visualFeatures.squeeze(1)
             audioFeatures = audioFeatures.to(self.device)
             visualFeatures = visualFeatures.to(self.device)
             labels = labels.squeeze().to(self.device)
@@ -111,7 +172,11 @@ class model(nn.Module):
             with torch.no_grad():
                 
                 audioEmbed = self.audioModel(audioFeatures)
+                audioEmbed = self.audio_avg_pool(audioEmbed)
+                audioEmbed = self.audio_flatten(audioEmbed)
                 visualEmbed = self.visualModel(visualFeatures)
+                visualEmbed = self.visual_avg_pool(visualEmbed)
+                visualEmbed = self.visual_flatten(visualEmbed)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 
@@ -119,7 +184,6 @@ class model(nn.Module):
                 predOutput = fcOutput.detach().cpu().numpy()
                 predLabel = predOutput.argmax(1)
                 predLabels.extend(predLabel)
-                
                 nloss = self.loss_fn(fcOutput, labels)
                 
                 loss += nloss.detach().cpu().numpy()
