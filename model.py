@@ -1,4 +1,4 @@
-import sys
+import sys, pandas
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -121,9 +121,10 @@ class model(nn.Module):
         
         return loss/num, lr
         
-    def evaluate_network(self, loader, **kwargs):
+    def evaluate_network(self, loader, evalOrig, evalCsvSave, **kwargs):
         self.eval()
         predScores = []
+        predLabels = []
         
         loss, top1, index, numBatches = 0, 0, 0, 0
         
@@ -142,6 +143,9 @@ class model(nn.Module):
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 
                 fcOutput = self.fcModel(avfusion)
+                predOutput = fcOutput.detach().cpu().numpy()
+                predLabel = predOutput.argmax(1)
+                predLabels.extend(predLabel)
                 
                 nloss = self.loss_fn(fcOutput, labels)
                 
@@ -152,6 +156,15 @@ class model(nn.Module):
                 
         print('eval loss ', loss/numBatches)
         print('eval accuracy ', top1/index)
+        labels = []
+        labels = pandas.Series( ['SPEAKING_AUDIBLE' if predLabel==1 else 'NOT_SPEAKING' for predLabel in predLabels])
+        predScores = predLabels
+        scores = pandas.Series(predScores)
+        evalRes = pandas.read_csv(evalOrig)
+        evalRes['score'] = scores
+        evalRes['label'] = labels
+        evalRes['label_id'] = pandas.Series(predLabels)
+        evalRes.to_csv(evalCsvSave, index=False)
         
         return top1/index
 

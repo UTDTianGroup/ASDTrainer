@@ -48,7 +48,8 @@ def main(args):
         
         s.loadParameters(args.eval_model_path)
         print("Parameters loaded from path ", args.eval_model_path)
-        mAP = s.evaluate_network(loader = valLoader, **vars(args))
+        os.makedirs(args.savePath, exist_ok=True)
+        mAP = s.evaluate_network(loader = valLoader, evalOrig=os.path.join(args.datasetPath, 'csv/val_orig.csv'), evalCsvSave=os.path.join(args.savePath, 'val_res.csv'), **vars(args))
         print("mAP %2.2f%%"%(mAP))
         quit()    
     
